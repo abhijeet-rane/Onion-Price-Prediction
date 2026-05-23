@@ -147,44 +147,49 @@ else:
                 future_mins.append(max(logical_min, 100))
                 future_maxs.append(max(logical_max, 100))
             
-            # Connect the line properly
-            if not hist_monthly.empty:
-                last_date = hist_monthly.index[-1]
-                last_price = hist_monthly['Modal_Price'].iloc[-1]
-                future_dates.insert(0, last_date)
-                future_mins.insert(0, last_price)
-                future_maxs.insert(0, last_price)
-
             fig = go.Figure()
 
-            if not hist_monthly.empty:
-                fig.add_trace(go.Scatter(
-                    x=hist_monthly.index, 
-                    y=hist_monthly['Modal_Price'],
-                    mode='lines+markers',
-                    name='Historical Modal Price',
-                    line=dict(color='blue', width=3, shape='spline', smoothing=0.8)
-                ))
+            # For the plot, show ONLY future-predicted points (no historical line)
+            plot_dates = [d for d in future_dates if d >= current_date]
+            if not plot_dates:
+                plot_dates = future_dates
+            plot_mins = [future_mins[i] for i, d in enumerate(future_dates) if d >= current_date] if any(d >= current_date for d in future_dates) else future_mins
+            plot_maxs = [future_maxs[i] for i, d in enumerate(future_dates) if d >= current_date] if any(d >= current_date for d in future_dates) else future_maxs
             
-            # Pass smooth SPLINES to flatten ugly jagged geometry
+            # Pass smooth SPLINES to flatten ugly jagged geometry (future only)
             fig.add_trace(go.Scatter(
-                x=future_dates + future_dates[::-1],
-                y=future_maxs + future_mins[::-1],
+                x=plot_dates + plot_dates[::-1],
+                y=plot_maxs + plot_mins[::-1],
                 fill='toself',
                 fillcolor='rgba(255, 99, 71, 0.4)',
                 line=dict(color='rgba(255,255,255,0)', shape='spline', smoothing=0.8),
                 hoverinfo="skip",
                 name='Predicted Min/Max Range'
             ))
-            
-            fig.add_trace(go.Scatter(x=future_dates, y=future_maxs, mode='lines', line=dict(color='red', dash='dash', shape='spline', smoothing=0.8), name='Predicted Max Price'))
-            fig.add_trace(go.Scatter(x=future_dates, y=future_mins, mode='lines', line=dict(color='green', dash='dash', shape='spline', smoothing=0.8), name='Predicted Min Price'))
+
+            fig.add_trace(go.Scatter(
+                x=plot_dates,
+                y=plot_maxs,
+                mode='lines',
+                line=dict(color='red', dash='dash', shape='spline', smoothing=0.8),
+                name='Predicted Maximum Price',
+                hovertemplate='<b>Predicted Maximum Price</b><br>₹%{y:.2f}<extra></extra>'
+            ))
+            fig.add_trace(go.Scatter(
+                x=plot_dates,
+                y=plot_mins,
+                mode='lines',
+                line=dict(color='green', dash='dash', shape='spline', smoothing=0.8),
+                name='Predicted Minimum Price',
+                hovertemplate='<b>Predicted Minimum Price</b><br>₹%{y:.2f}<extra></extra>'
+            ))
 
             fig.update_layout(
                 title=f"Price Forecast for {variety_input} Onions in {district_input.title()}, {state_input.title()}",
                 xaxis_title="Date",
                 yaxis_title="Price (₹ / Quintal)",
                 hovermode="x unified",
+                hoverlabel=dict(namelength=-1),
                 template="plotly_white"
             )
             
@@ -225,5 +230,4 @@ else:
                 peak_month = f_dates[f_maxs.index(peak_value)].strftime('%B %Y')
                 st.success(f"**📈 Farmer Peak Opportunity:**\n\n### ₹{peak_value:.2f}\n*(Highest expected price in {peak_month})*\n\n*Aids farmers in planning sales correctly for maximum yield.*")
             with col4:
-                st.metric(label="Forecast Confidence", value=f"{confidence_score:.1f}%", delta="SRS Target: 80%. Dynamic.", delta_color="normal")
-                st.caption("*Based directly on the real-time variance and boundary spread of the Stacking Regressor predictions!*")
+                st.metric(label="Forecast Confidence", value=f"{confidence_score:.1f}%")
