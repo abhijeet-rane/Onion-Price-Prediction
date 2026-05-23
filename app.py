@@ -230,4 +230,4 @@ else:
                 peak_month = f_dates[f_maxs.index(peak_value)].strftime('%B %Y')
                 st.success(f"**📈 Farmer Peak Opportunity:**\n\n### ₹{peak_value:.2f}\n*(Highest expected price in {peak_month})*\n\n*Aids farmers in planning sales correctly for maximum yield.*")
             with col4:
-                st.metric(label="Forecast Confidence", value=f"{confidence_score:.1f}%")
+                st.info(f"**Forecast Confidence:**\n\n### {confidence_score:.1f}%")
